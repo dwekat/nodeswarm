@@ -4,11 +4,11 @@
   "description": "Lightweight library for managing worker threads and parallel execution of tasks in Node.js.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "repository": "https://github.com/mdwekat/nodeswarm.git",
+  "repository": "git@github.com:dwekat/nodeswarm.git",
   "bugs": {
-    "url": "https://github.com/mdwekat/nodeswarm/issues"
+    "url": "https://github.com/dwekat/nodeswarm/issues"
   },
-  "homepage": "https://github.com/mdwekat/nodeswarm#readme",
+  "homepage": "https://github.com/dwekat/nodeswarm#readme",
   "scripts": {
     "build": "rimraf dist && tsc",
     "pretest": "rimraf test_tmp && tsc -p tsconfig.worker.json",
