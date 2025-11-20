@@ -1,5 +1,69 @@
 # Changelog
 
+## 2.0.0
+
+### Major Changes
+
+- ad1eede: Production-ready v1.0.0 release with enterprise features:
+  - Job timeout & cancellation with AbortController support
+  - Priority queue system (HIGH, NORMAL, LOW priorities)
+  - Worker health monitoring and automatic restart on failure
+  - Real-time metrics and performance monitoring
+  - Auto-scaling thread pool with configurable thresholds
+  - Strict mode security validation (enabled by default)
+  - Comprehensive benchmark suite vs competitors (Piscina, Workerpool, Tinypool)
+  - Full TypeScript strict mode with zero linter errors
+  - 20+ new comprehensive tests covering all features
+  - Complete documentation overhaul (README, SECURITY, CHANGELOG, CONTRIBUTING)
+  - Advanced examples for all features
+  - Event-driven pool closing (replaced inefficient polling)
+  - Enhanced error handling with full stack trace preservation
+
+### Minor Changes
+
+- Add full ESM (ES Modules) and CommonJS dual module support:
+  - Dual build system with separate CJS and ESM outputs
+  - Proper package.json exports field with conditional exports
+  - Module type hints in dist folders for better resolution
+  - Universal worker path resolution for both module systems
+  - Compatibility tests for both ESM and CJS
+  - Tree-shaking support in ESM builds
+  - Works seamlessly in modern bundlers (Vite, Rollup) and legacy tools (Webpack, Node CJS)
+  - Fully backward compatible - existing CommonJS users unaffected
+
+## 1.1.0
+
+### Minor Changes
+
+- **Full ESM (ES Modules) support**: Package now supports both ESM and CommonJS
+- **Dual build system**: Separate builds for CJS (`dist/cjs`) and ESM (`dist/esm`) with proper conditional exports
+- **Package.json exports field**: Proper conditional exports for modern tooling and tree-shaking
+- **Module type hints**: package.json files in dist folders for better module resolution
+- **Compatibility tests**: Dedicated ESM and CJS compatibility test suites
+- **Universal worker path resolution**: Works seamlessly in both ESM and CJS environments
+
+### Changed
+
+- Build system now outputs three separate builds: `dist/cjs`, `dist/esm`, `dist/types`
+- Worker path resolution improved to detect and handle both module systems automatically
+- Package exports configured for optimal tree-shaking in ESM
+- Documentation updated with both ESM and CJS usage examples
+
+### Technical Details
+
+- Main entry point (`require`): `./dist/cjs/index.js`
+- Module entry point (`import`): `./dist/esm/index.js`
+- TypeScript types: `./dist/types/index.d.ts`
+- Requires Node.js 12.20+ for conditional exports support
+
+### Benefits
+
+- ✅ Modern ESM support for Vite, Rollup, and modern bundlers
+- ✅ Tree-shaking support in ESM builds
+- ✅ Backward compatible with CommonJS projects
+- ✅ Future-proof module architecture
+- ✅ Works in both Next.js App Router (ESM) and Pages Router (CJS)
+
 ## 1.0.0
 
 ### Major Changes

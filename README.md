@@ -12,6 +12,7 @@ NodeSwarm is a high-performance, feature-rich library for managing worker thread
 
 - **🚀 High Performance**: Optimized for throughput and latency
 - **⚡ Simple API**: Execute any function in a thread with one line
+- **📦 Dual Module Support**: Works with both ESM and CommonJS
 - **🎯 Priority Queue**: HIGH, NORMAL, LOW priority job scheduling
 - **⏱️ Timeout & Cancellation**: Built-in timeout and AbortController support
 - **📊 Metrics**: Real-time monitoring of pool performance
@@ -37,6 +38,8 @@ pnpm add nodeswarm
 
 ## Quick Start
 
+### ESM (Modern)
+
 ```typescript
 import { ThreadPool } from "nodeswarm";
 
@@ -47,6 +50,21 @@ const result = await pool.thread((a, b) => a + b, 5, 10);
 console.log(result); // 15
 
 await pool.close();
+```
+
+### CommonJS (Legacy)
+
+```javascript
+const { ThreadPool } = require("nodeswarm");
+
+(async () => {
+  const pool = new ThreadPool();
+
+  const result = await pool.thread((a, b) => a + b, 5, 10);
+  console.log(result); // 15
+
+  await pool.close();
+})();
 ```
 
 ## Performance

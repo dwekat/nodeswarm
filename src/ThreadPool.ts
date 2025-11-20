@@ -1,9 +1,10 @@
 import os from "os";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import { Worker } from "worker_threads";
-import { PriorityQueue } from "./priorityQueue";
-import { MetricsTracker } from "./metrics";
-import { validateFunction, validateArguments } from "./validation";
+import { PriorityQueue } from "./priorityQueue.js";
+import { MetricsTracker } from "./metrics.js";
+import { validateFunction, validateArguments } from "./validation.js";
 import {
   ThreadPoolConfig,
   ThreadOptions,
@@ -12,10 +13,38 @@ import {
   WorkerMessage,
   ThreadPoolMetrics,
   WorkerState,
-} from "./types";
+} from "./types.js";
 
 // Re-export WorkerMessage for worker.ts
-export type { WorkerMessage } from "./types";
+export type { WorkerMessage } from "./types.js";
+
+/**
+ * Get worker path - resolved at module load time
+ * In CJS: uses __dirname which is always defined
+ * In ESM: uses import.meta.url
+ * 
+ * Note: The __dirname check returns early in CJS builds, so the import.meta
+ * code is never executed in CJS (avoiding syntax errors).
+ */
+let cachedWorkerPath: string | null = null;
+
+function getWorkerPath(): string {
+  if (cachedWorkerPath) return cachedWorkerPath;
+  
+  // CommonJS: __dirname is defined
+  // This check succeeds and returns in CJS, so import.meta below never runs
+  if (typeof __dirname !== "undefined") {
+    cachedWorkerPath = resolve(__dirname, "./worker.js");
+    return cachedWorkerPath;
+  }
+  
+  // ESM: __dirname is not defined, use import.meta.url
+  // This code only executes in ESM builds where import.meta is available
+  // @ts-ignore - TypeScript may not recognize import.meta in all contexts
+  const url = new URL("./worker.js", import.meta.url);
+  cachedWorkerPath = fileURLToPath(url);
+  return cachedWorkerPath;
+}
 
 /**
  * ThreadPool class manages a pool of worker threads and schedules jobs
@@ -31,7 +60,7 @@ export class ThreadPool {
   private metrics: MetricsTracker;
   private healthCheckInterval?: NodeJS.Timeout;
 
-  private static readonly workerPath = resolve(__dirname, "./worker.js");
+  private static readonly workerPath = getWorkerPath();
   private readonly config: Required<ThreadPoolConfig>;
 
   /**

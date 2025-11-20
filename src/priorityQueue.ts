@@ -1,4 +1,4 @@
-import { Job, Priority } from "./types";
+import { Job, Priority } from "./types.js";
 
 /**
  * Priority queue implementation for job scheduling

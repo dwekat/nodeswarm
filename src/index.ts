@@ -1,4 +1,4 @@
-export * from "./ThreadPool";
-export * from "./types";
-export { PriorityQueue } from "./priorityQueue";
-export { MetricsTracker } from "./metrics";
+export * from "./ThreadPool.js";
+export * from "./types.js";
+export { PriorityQueue } from "./priorityQueue.js";
+export { MetricsTracker } from "./metrics.js";

@@ -1,4 +1,4 @@
-import { WorkerMessage } from "./ThreadPool";
+import { WorkerMessage } from "./ThreadPool.js";
 import { parentPort } from "worker_threads";
 
 parentPort!.on("message", async (message: WorkerMessage) => {

@@ -1,20 +1,49 @@
 {
   "name": "nodeswarm",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Lightweight library for managing worker threads and parallel execution of tasks in Node.js.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "commonjs",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
   "repository": "git@github.com:dwekat/nodeswarm.git",
   "bugs": {
     "url": "https://github.com/dwekat/nodeswarm/issues"
   },
   "homepage": "https://github.com/dwekat/nodeswarm#readme",
   "scripts": {
-    "build": "rimraf dist && tsc",
+    "build": "npm run build:clean && npm run build:cjs && npm run build:fix-cjs && npm run build:esm && npm run build:types && npm run build:hints",
+    "build:clean": "rimraf dist",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:fix-cjs": "node scripts/fix-cjs-imports.js",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:hints": "node scripts/create-package-hints.js",
     "build:benchmark": "tsc -p benchmark/tsconfig.json",
     "pretest": "rimraf test_tmp && tsc -p tsconfig.worker.json",
     "posttest": "rimraf test_tmp",
     "test": "jest",
+    "test:compat": "node test/cjs-compat.test.cjs && node test/esm-compat.test.mjs",
     "benchmark": "npm run build && npm run build:benchmark && node benchmark/dist/index.js",
     "benchmark:compare": "npm run build && npm run build:benchmark && node benchmark/dist/compare.js",
     "prepublishOnly": "npm run build",
