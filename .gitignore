@@ -9,6 +9,7 @@ node_modules
 
 # Compiled Files
 dist
+benchmark/dist
 
 # Logs and databases
 *.log

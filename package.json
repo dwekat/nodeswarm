@@ -1,6 +1,6 @@
 {
   "name": "nodeswarm",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Lightweight library for managing worker threads and parallel execution of tasks in Node.js.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,9 +11,12 @@
   "homepage": "https://github.com/dwekat/nodeswarm#readme",
   "scripts": {
     "build": "rimraf dist && tsc",
+    "build:benchmark": "tsc -p benchmark/tsconfig.json",
     "pretest": "rimraf test_tmp && tsc -p tsconfig.worker.json",
     "posttest": "rimraf test_tmp",
     "test": "jest",
+    "benchmark": "npm run build && npm run build:benchmark && node benchmark/dist/index.js",
+    "benchmark:compare": "npm run build && npm run build:benchmark && node benchmark/dist/compare.js",
     "prepublishOnly": "npm run build",
     "changeset": "changeset",
     "version": "changeset version",
@@ -34,10 +37,13 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "jest": "^30.2.0",
+    "piscina": "^4.7.0",
     "prettier": "^3.6.2",
     "rimraf": "^6.1.2",
+    "tinypool": "^1.0.2",
     "ts-jest": "^29.4.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "workerpool": "^9.2.1"
   },
   "jest": {
     "preset": "ts-jest",

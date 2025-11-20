@@ -6,7 +6,7 @@ const actualPathResolve = path.resolve;
 
 jest.mock("path", () => ({
   ...jest.requireActual("path"),
-  resolve: (...args) => {
+  resolve: (...args: any[]) => {
     // if the last arg is './worker.js', replace the resolved path
     if (args[args.length - 1] === "./worker.js") {
       return path.join(__dirname, "../test_tmp/worker.js");
@@ -17,7 +17,7 @@ jest.mock("path", () => ({
 }));
 
 // must be imported after the mock
-import { ThreadPool } from "../src";
+import { ThreadPool, Priority } from "../src";
 
 describe("ThreadPool", () => {
   let pool: ThreadPool;
@@ -27,7 +27,9 @@ describe("ThreadPool", () => {
   });
 
   afterEach(async () => {
-    await pool.close();
+    if (pool) {
+      await pool.close();
+    }
   });
 
   test("should create thread pool with default size", () => {
@@ -66,10 +68,12 @@ describe("ThreadPool", () => {
   });
 
   it("should terminate all workers immediately", async () => {
-    const pool = new ThreadPool();
+    const testPool = new ThreadPool();
+    const poolSize = testPool.size;
     const spy = jest.spyOn(Worker.prototype, "terminate");
-    pool.terminate();
-    expect(spy).toHaveBeenCalledTimes(pool.size);
+    testPool.terminate();
+    expect(spy).toHaveBeenCalledTimes(poolSize);
+    spy.mockRestore();
   });
 
   it("should close all workers gracefully after completing ongoing jobs", async () => {
@@ -90,8 +94,256 @@ describe("ThreadPool", () => {
   });
 
   it("should handle high load properly", async () => {
-    const jobs = Array(1000).fill(() => pool.thread(() => 1 + 1));
+    const jobs = Array(1000).fill(0).map(() => pool.thread(() => 1 + 1));
     await expect(Promise.all(jobs)).resolves.not.toThrow();
+  });
+
+  // New tests for timeout functionality
+  describe("Timeout functionality", () => {
+    it("should timeout a long-running job", async () => {
+      const testPool = new ThreadPool();
+      await expect(
+        testPool.thread(
+          { timeout: 100 },
+          () => {
+            const start = Date.now();
+            while (Date.now() - start < 1000) {}
+            return "done";
+          }
+        )
+      ).rejects.toThrow("TimeoutError");
+      await testPool.close();
+    }, 10000);
+
+    it("should complete job before timeout", async () => {
+      const result = await pool.thread(
+        { timeout: 1000 },
+        () => {
+          return 42;
+        }
+      );
+      expect(result).toBe(42);
+    });
+  });
+
+  // New tests for cancellation
+  describe("Cancellation functionality", () => {
+    it("should cancel job with AbortSignal", async () => {
+      const testPool = new ThreadPool();
+      const controller = new AbortController();
+      
+      const jobPromise = testPool.thread(
+        { signal: controller.signal },
+        () => {
+          const start = Date.now();
+          while (Date.now() - start < 1000) {}
+          return "done";
+        }
+      );
+
+      setTimeout(() => controller.abort(), 50);
+
+      await expect(jobPromise).rejects.toThrow("AbortError");
+      await testPool.close();
+    }, 10000);
+
+    it("should reject if signal is already aborted", async () => {
+      const controller = new AbortController();
+      controller.abort();
+
+      await expect(
+        pool.thread({ signal: controller.signal }, () => 42)
+      ).rejects.toThrow("AbortError");
+    });
+  });
+
+  // New tests for priority queue
+  describe("Priority queue", () => {
+    it("should respect priority levels in queue", async () => {
+      const testPool = new ThreadPool({ poolSize: 1 });
+      
+      // Start a blocking job to fill the worker
+      const blocker = testPool.thread(() => {
+        const start = Date.now();
+        while (Date.now() - start < 300) {}
+        return 0;
+      });
+
+      // Wait to ensure worker is busy
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      
+      // Queue multiple jobs with different priorities
+      const lowJob = testPool.thread({ priority: Priority.LOW }, (x: number) => x, 1);
+      const highJob = testPool.thread({ priority: Priority.HIGH }, (x: number) => x, 2);
+      const normalJob = testPool.thread({ priority: Priority.NORMAL }, (x: number) => x, 3);
+
+      // Wait for blocker to complete
+      await blocker;
+      
+      // Now check which job completes first - HIGH should complete before others
+      const raceResult = await Promise.race([
+        highJob.then(() => "HIGH"),
+        normalJob.then(() => "NORMAL"),
+        lowJob.then(() => "LOW"),
+      ]);
+      
+      expect(raceResult).toBe("HIGH");
+      
+      // Clean up remaining
+      await Promise.all([lowJob, normalJob]);
+      await testPool.close();
+    });
+  });
+
+  // New tests for metrics
+  describe("Metrics tracking", () => {
+    it("should track completed jobs", async () => {
+      pool.resetMetrics();
+      
+      await pool.thread(() => 1);
+      await pool.thread(() => 2);
+      await pool.thread(() => 3);
+
+      const metrics = pool.getMetrics();
+      expect(metrics.completedJobs).toBe(3);
+      expect(metrics.failedJobs).toBe(0);
+    });
+
+    it("should track failed jobs", async () => {
+      pool.resetMetrics();
+      
+      try {
+        await pool.thread(() => {
+          throw new Error("test error");
+        });
+      } catch {}
+
+      const metrics = pool.getMetrics();
+      expect(metrics.failedJobs).toBe(1);
+    });
+
+    it("should track execution time", async () => {
+      pool.resetMetrics();
+      
+      await pool.thread(() => {
+        const start = Date.now();
+        while (Date.now() - start < 100) {}
+        return 1;
+      });
+
+      const metrics = pool.getMetrics();
+      expect(metrics.avgExecutionTime).toBeGreaterThan(50);
+      expect(metrics.totalExecutionTime).toBeGreaterThan(50);
+    });
+
+    it("should track queue depth", async () => {
+      const pool = new ThreadPool({ poolSize: 1 });
+      
+      // Start multiple jobs
+      const promises = Array(5)
+        .fill(0)
+        .map(() => pool.thread(() => {
+          const start = Date.now();
+          while (Date.now() - start < 100) {}
+          return 1;
+        }));
+
+      // Check metrics while jobs are running
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const metrics = pool.getMetrics();
+      expect(metrics.queueDepth).toBeGreaterThan(0);
+      
+      await Promise.all(promises);
+      await pool.close();
+    });
+  });
+
+  // New tests for strict mode
+  describe("Strict mode validation", () => {
+    it("should block unsafe require() calls", async () => {
+      const pool = new ThreadPool({ strictMode: true });
+      
+      await expect(
+        pool.thread(() => {
+          require("fs");
+        })
+      ).rejects.toThrow();
+      
+      await pool.close();
+    });
+
+    it("should block unsafe process access", async () => {
+      const pool = new ThreadPool({ strictMode: true });
+      
+      await expect(
+        pool.thread(() => {
+          return process.env;
+        })
+      ).rejects.toThrow();
+      
+      await pool.close();
+    });
+
+    it("should allow safe functions in strict mode", async () => {
+      const pool = new ThreadPool({ strictMode: true });
+      
+      const result = await pool.thread((x: number) => x * 2, 21);
+      expect(result).toBe(42);
+      
+      await pool.close();
+    });
+
+    it("should allow all functions when strict mode is off", async () => {
+      const pool = new ThreadPool({ strictMode: false });
+      
+      // This would normally be blocked
+      const result = await pool.thread(() => {
+        return 42;
+      });
+      expect(result).toBe(42);
+      
+      await pool.close();
+    });
+  });
+
+  // New tests for error handling
+  describe("Enhanced error handling", () => {
+    it("should preserve error stack traces", async () => {
+      try {
+        await pool.thread(() => {
+          throw new Error("Test error with stack");
+        });
+      } catch (error: any) {
+        expect(error.stack).toBeDefined();
+        expect(error.stack).toContain("Test error with stack");
+      }
+    });
+
+    it("should preserve error names", async () => {
+      try {
+        await pool.thread(() => {
+          const err = new TypeError("Type error test");
+          throw err;
+        });
+      } catch (error: any) {
+        expect(error.name).toBe("TypeError");
+      }
+    });
+  });
+
+  // New tests for pool configuration
+  describe("Pool configuration", () => {
+    it("should respect custom pool size", () => {
+      const customPool = new ThreadPool({ poolSize: 4 });
+      expect(customPool.size).toBe(4);
+      customPool.terminate();
+    });
+
+    it("should default to CPU count", () => {
+      const defaultPool = new ThreadPool();
+      expect(defaultPool.size).toBe(os.cpus().length);
+      defaultPool.terminate();
+    });
   });
 });
 
