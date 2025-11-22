@@ -4,6 +4,8 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/mdwekat/nodeswarm/badge.svg)](https://snyk.io/test/github/mdwekat/nodeswarm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+<a href="https://www.buymeacoffee.com/dwekat" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="217"></a>
+
 > Production-ready thread pool for Node.js with advanced features
 
 NodeSwarm is a high-performance, feature-rich library for managing worker threads in Node.js. It enables effortless parallel execution of CPU-bound tasks with enterprise-grade features like timeouts, priorities, auto-scaling, and comprehensive metrics.
