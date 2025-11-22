@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- Add Buy Me A Coffee button to README
+
 ## 2.0.0
 
 ### Major Changes
