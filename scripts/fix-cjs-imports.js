@@ -3,12 +3,12 @@
  * Fix import.meta references in CJS build
  * Replaces the ESM path code with a throw statement since it's unreachable
  */
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const threadPoolPath = path.join(__dirname, '../dist/cjs/ThreadPool.js');
+const threadPoolPath = path.join(__dirname, "../dist/cjs/ThreadPool.js");
 
-let content = fs.readFileSync(threadPoolPath, 'utf8');
+let content = fs.readFileSync(threadPoolPath, "utf8");
 
 // Replace the import.meta.url line with a throw
 // This code is unreachable in CJS (guarded by __dirname check)
@@ -18,6 +18,5 @@ content = content.replace(
   'throw new Error("This code path should never execute in CommonJS");'
 );
 
-fs.writeFileSync(threadPoolPath, content, 'utf8');
-console.log('✓ Fixed import.meta references in CJS build');
-
+fs.writeFileSync(threadPoolPath, content, "utf8");
+console.log("✓ Fixed import.meta references in CJS build");
