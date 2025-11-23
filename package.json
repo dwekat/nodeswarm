@@ -1,20 +1,55 @@
 {
   "name": "nodeswarm",
-  "version": "0.0.1",
+  "version": "2.0.1",
   "description": "Lightweight library for managing worker threads and parallel execution of tasks in Node.js.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "repository": "https://github.com/mdwekat/nodeswarm.git",
-  "bugs": {
-    "url": "https://github.com/mdwekat/nodeswarm/issues"
+  "type": "commonjs",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
   },
-  "homepage": "https://github.com/mdwekat/nodeswarm#readme",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "repository": "git@github.com:dwekat/nodeswarm.git",
+  "bugs": {
+    "url": "https://github.com/dwekat/nodeswarm/issues"
+  },
+  "homepage": "https://github.com/dwekat/nodeswarm#readme",
   "scripts": {
-    "build": "rimraf dist && tsc",
+    "build": "npm run build:clean && npm run build:cjs && npm run build:fix-cjs && npm run build:esm && npm run build:types && npm run build:hints",
+    "build:clean": "rimraf dist",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:fix-cjs": "node scripts/fix-cjs-imports.js",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:hints": "node scripts/create-package-hints.js",
+    "build:benchmark": "tsc -p benchmark/tsconfig.json",
     "pretest": "rimraf test_tmp && tsc -p tsconfig.worker.json",
     "posttest": "rimraf test_tmp",
     "test": "jest",
-    "prepublishOnly": "npm run build"
+    "test:compat": "node test/cjs-compat.test.cjs && node test/esm-compat.test.mjs",
+    "benchmark": "npm run build && npm run build:benchmark && node benchmark/dist/index.js",
+    "benchmark:compare": "npm run build && npm run build:benchmark && node benchmark/dist/compare.js",
+    "prepublishOnly": "npm run build",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
   },
   "keywords": [
     "thread",
@@ -27,13 +62,17 @@
   "author": "Mustafa Dwaikat <mudwekat@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^29.5.5",
-    "@types/node": "^20.7.0",
-    "jest": "^29.7.0",
-    "prettier": "^3.0.3",
-    "rimraf": "^5.0.5",
-    "ts-jest": "^29.1.1",
-    "typescript": "^5.2.2"
+    "@changesets/cli": "^2.29.7",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.1",
+    "jest": "^30.2.0",
+    "piscina": "^4.7.0",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.1.2",
+    "tinypool": "^1.0.2",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3",
+    "workerpool": "^9.2.1"
   },
   "jest": {
     "preset": "ts-jest",

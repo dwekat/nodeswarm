@@ -1,4 +1,5 @@
 .vscode
+.cursor
 node_modules
 
 # IntelliJ project files
@@ -8,6 +9,10 @@ node_modules
 
 # Compiled Files
 dist
+dist/cjs
+dist/esm
+dist/types
+benchmark/dist
 
 # Logs and databases
 *.log

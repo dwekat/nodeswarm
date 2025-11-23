@@ -3,14 +3,22 @@
     "outDir": "./dist",
     "sourceMap": true,
     "baseUrl": "./src",
-    "target": "ES6",
+    "target": "ES2020",
     "module": "CommonJS",
+    "lib": ["ES2020"],
     "declaration": true,
-    "strict": false,
-    "noImplicitAny": false,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   },
   "include": [
     "./src/**/*.ts"
