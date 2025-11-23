@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.2
+
+### Patch Changes
+
+- fe22825: - Update @babel/traverse from 7.23.0 to 7.28.5
+  - Add Prettier and EditorConfig configuration for consistent code formatting
+
 ## 2.0.1
 
 ### Patch Changes
