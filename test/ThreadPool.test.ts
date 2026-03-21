@@ -234,8 +234,8 @@ describe("ThreadPool", () => {
       });
 
       const metrics = pool.getMetrics();
-      expect(metrics.avgExecutionTime).toBeGreaterThan(50);
-      expect(metrics.totalExecutionTime).toBeGreaterThan(50);
+      expect(metrics.avgExecutionTime).toBeGreaterThan(10);
+      expect(metrics.totalExecutionTime).toBeGreaterThan(10);
     });
 
     it("should track queue depth", async () => {

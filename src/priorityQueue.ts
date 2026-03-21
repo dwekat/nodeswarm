@@ -34,19 +34,25 @@ export class PriorityQueue<T> {
     // Check HIGH priority first
     const highQueue = this.queues.get(Priority.HIGH);
     if (highQueue && highQueue.length > 0) {
-      return highQueue.shift();
+      const job = highQueue.shift();
+      this.totalLength--;
+      return job;
     }
 
     // Then NORMAL priority
     const normalQueue = this.queues.get(Priority.NORMAL);
     if (normalQueue && normalQueue.length > 0) {
-      return normalQueue.shift();
+      const job = normalQueue.shift();
+      this.totalLength--;
+      return job;
     }
 
     // Finally LOW priority
     const lowQueue = this.queues.get(Priority.LOW);
     if (lowQueue && lowQueue.length > 0) {
-      return lowQueue.shift();
+      const job = lowQueue.shift();
+      this.totalLength--;
+      return job;
     }
 
     return undefined;
@@ -56,11 +62,7 @@ export class PriorityQueue<T> {
    * Get total number of jobs across all priorities
    */
   get length(): number {
-    let total = 0;
-    this.queues.forEach((queue) => {
-      total += queue.length;
-    });
-    return total;
+    return this.totalLength;
   }
 
   /**
@@ -75,6 +77,7 @@ export class PriorityQueue<T> {
    */
   clear(): void {
     this.queues.forEach((queue) => queue.length = 0);
+    this.totalLength = 0;
   }
 
   /**
