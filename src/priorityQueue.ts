@@ -6,6 +6,7 @@ import { Job, Priority } from "./types.js";
  */
 export class PriorityQueue<T> {
   private queues: Map<Priority, Job<T>[]>;
+  private totalLength = 0;
 
   constructor() {
     this.queues = new Map([
@@ -22,6 +23,7 @@ export class PriorityQueue<T> {
     const queue = this.queues.get(job.priority);
     if (queue) {
       queue.push(job);
+      this.totalLength++;
     }
   }
 

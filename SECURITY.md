@@ -73,6 +73,8 @@ Strict mode detects and blocks:
 - Access to `process`, `global`, `__dirname`, `__filename`
 - File system and child process operations
 
+**Important**: Strict mode is defense-in-depth, not a security sandbox. It uses string pattern matching and can be bypassed via unicode escapes, template literals, or indirect evaluation. Code review remains the primary defense for untrusted function inputs
+
 ### Disabling Strict Mode
 
 Only disable strict mode if you have a specific need and understand the risks:

@@ -404,6 +404,7 @@ export class ThreadPool {
    * Process the next job in the queue
    */
   private processNextJob(): void {
+    if (this.closing) return;
     if (!this.queue.isEmpty) {
       const availableWorker = this.findAvailableWorker();
       if (availableWorker) {

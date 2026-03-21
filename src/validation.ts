@@ -2,6 +2,12 @@
  * Security validation utilities for function serialization
  */
 
+// Strict mode validation provides defense-in-depth by blocking common dangerous
+// patterns (require, import, eval, fs, process). It uses string matching and can
+// be bypassed via unicode escapes, template literals, or indirect evaluation.
+// It is NOT a security sandbox. Code review remains the primary defense for
+// untrusted function inputs.
+
 // Patterns that could indicate potentially dangerous code
 const DANGEROUS_PATTERNS = [
   /require\s*\(/i,
