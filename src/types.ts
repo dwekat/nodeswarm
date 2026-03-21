@@ -140,6 +140,7 @@ export interface Job<R> {
   startTime?: number;
   timeoutId?: NodeJS.Timeout;
   settled?: boolean;
+  abortCleanup?: () => void;
 }
 
 /**

@@ -157,6 +157,33 @@ describe("ThreadPool", () => {
         pool.thread({ signal: controller.signal }, () => 42)
       ).rejects.toThrow("AbortError");
     });
+
+    it("should not leak AbortSignal listeners with 1000 jobs", async () => {
+      const testPool = new ThreadPool({ poolSize: 4 });
+      const controllers: AbortController[] = [];
+      const jobCount = 1000;
+
+      for (let i = 0; i < jobCount; i++) {
+        controllers.push(new AbortController());
+      }
+
+      const initialMemory = process.memoryUsage().heapUsed;
+      const jobs = controllers.map((controller, i) =>
+        testPool.thread({ signal: controller.signal }, (x: number) => x * 2, i)
+      );
+
+      const results = await Promise.all(jobs);
+      expect(results.length).toBe(jobCount);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const finalMemory = process.memoryUsage().heapUsed;
+      const memoryGrowth = (finalMemory - initialMemory) / 1024 / 1024;
+
+      expect(memoryGrowth).toBeLessThan(5);
+
+      await testPool.close();
+    }, 30000);
   });
 
   // New tests for priority queue

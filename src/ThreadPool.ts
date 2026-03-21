@@ -240,9 +240,9 @@ export class ThreadPool {
         if (options.signal.aborted) {
           return reject(new Error("AbortError: Job was aborted"));
         }
-        options.signal.addEventListener("abort", () => {
-          this.cancelJob(job);
-        });
+        const abortHandler = () => this.cancelJob(job);
+        options.signal.addEventListener("abort", abortHandler);
+        job.abortCleanup = () => options.signal!.removeEventListener("abort", abortHandler);
       }
 
       this.enqueue(job);
@@ -252,14 +252,20 @@ export class ThreadPool {
   /**
    * Cancel a job
    */
-  private cancelJob(job: Job<any>): void {
-    // Prevent double settlement
-    if (job.settled) return;
+  /**
+   * Attempt to settle a job. Returns false if already settled.
+   * Cleans up timeout and abort listener on settlement.
+   */
+  private settleJob(job: Job<any>): boolean {
+    if (job.settled) return false;
     job.settled = true;
+    if (job.timeoutId) clearTimeout(job.timeoutId);
+    job.abortCleanup?.();
+    return true;
+  }
 
-    if (job.timeoutId) {
-      clearTimeout(job.timeoutId);
-    }
+  private cancelJob(job: Job<any>): void {
+    if (!this.settleJob(job)) return;
     job.reject(new Error("AbortError: Job was aborted"));
     this.metrics.recordJobFailure();
   }
@@ -343,9 +349,7 @@ export class ThreadPool {
    * Handle job timeout
    */
   private handleJobTimeout(worker: Worker, job: Job<any>): void {
-    // Prevent double settlement
-    if (job.settled) return;
-    job.settled = true;
+    if (!this.settleJob(job)) return;
 
     this.workerJobMap.delete(worker);
     job.reject(new Error("TimeoutError: Job execution exceeded timeout"));
@@ -368,19 +372,16 @@ export class ThreadPool {
     const job = this.workerJobMap.get(worker);
     if (!job) return;
 
-    // Prevent double settlement
-    if (job.settled) {
-      // Job already settled, clean up and continue
+    if (!this.settleJob(job)) {
+      // Job already settled (timeout/abort fired first), just clean up worker
       this.workerJobMap.delete(worker);
 
-      // Update worker heartbeat
       const workerState = this.workers.find((ws) => ws.worker === worker);
       if (workerState) {
         workerState.lastHeartbeat = Date.now();
         workerState.isHealthy = true;
       }
 
-      // Check if closing
       if (
         this.closing &&
         this.queue.isEmpty &&
@@ -390,15 +391,8 @@ export class ThreadPool {
         this.closeResolvers = [];
       }
 
-      // Process next job
       this.processNextJob();
       return;
-    }
-    job.settled = true;
-
-    // Clear timeout if set
-    if (job.timeoutId) {
-      clearTimeout(job.timeoutId);
     }
 
     // Calculate execution time
@@ -445,7 +439,6 @@ export class ThreadPool {
    * Process the next job in the queue
    */
   private processNextJob(): void {
-    if (this.closing) return;
     if (!this.queue.isEmpty) {
       const availableWorker = this.findAvailableWorker();
       if (availableWorker) {
@@ -471,17 +464,7 @@ export class ThreadPool {
     }
 
     const job = this.workerJobMap.get(worker);
-    if (job) {
-      // Prevent double settlement
-      if (job.settled) {
-        this.workerJobMap.delete(worker);
-        return;
-      }
-      job.settled = true;
-
-      if (job.timeoutId) {
-        clearTimeout(job.timeoutId);
-      }
+    if (job && this.settleJob(job)) {
       job.reject(error);
       this.metrics.recordJobFailure();
     }
@@ -560,5 +543,14 @@ export class ThreadPool {
     this.workers.forEach((ws) => ws.worker.terminate());
     this.workers = [];
     this.workerJobMap.clear();
+
+    // Reject all queued jobs
+    const terminatedError = new Error("Pool terminated");
+    while (!this.queue.isEmpty) {
+      const job = this.queue.dequeue();
+      if (job && this.settleJob(job)) {
+        job.reject(terminatedError);
+      }
+    }
   }
 }
