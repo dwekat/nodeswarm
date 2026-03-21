@@ -6,7 +6,8 @@
         "incremental": false,
     },
     "include": [
-        "src/worker.ts"
+        "src/worker.ts",
+        "src/types.ts"
     ],
     "exclude": [
         "node_modules"

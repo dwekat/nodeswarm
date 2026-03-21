@@ -21,6 +21,8 @@ NodeSwarm is a high-performance, feature-rich library for managing worker thread
 - **🔄 Auto-Scaling**: Dynamic worker pool adjustment
 - **🛡️ Strict Mode**: Security validation for safe execution
 - **🔧 Health Monitoring**: Automatic worker restart on failure
+- **🧠 Shared Memory**: `ref()` for cross-thread shared state via `SharedArrayBuffer`
+- **🏭 Reusable Threads**: `pool.create()` for factory-style thread functions with auto-detected shared refs
 - **📝 TypeScript**: Full type safety with strict mode
 - **✅ Production Ready**: Comprehensive tests and error handling
 
@@ -209,7 +211,74 @@ try {
 }
 ```
 
-### 8. Worker Health Monitoring
+### 8. Shared Memory with ref()
+
+Share state between the main thread and worker threads using `ref()`. Values are backed by `SharedArrayBuffer` — both sides read and write the same memory.
+
+```typescript
+import { ThreadPool, ref } from "nodeswarm";
+
+const counter = ref(0);
+const status = ref("pending");
+
+const pool = new ThreadPool();
+
+const add = pool.create((x) => {
+  counter.value += x;
+  status.value = "done";
+});
+
+await add(5);
+
+console.log(counter.value);  // 5
+console.log(status.value);   // "done"
+
+await pool.close();
+```
+
+`ref()` auto-detects the variable name from the call site. `pool.create()` scans the function source for matching refs and wires them into the worker scope automatically.
+
+Supported types: `number` and `string`.
+
+### 9. Reusable Thread Functions with pool.create()
+
+Create reusable functions that dispatch to worker threads on each call:
+
+```typescript
+const pool = new ThreadPool();
+
+const multiply = pool.create((a, b) => a * b);
+
+const r1 = await multiply(3, 4);  // 12
+const r2 = await multiply(5, 6);  // 30
+
+await pool.close();
+```
+
+Combined with `ref()`, this enables progress tracking patterns:
+
+```typescript
+const progress = ref(0);
+
+const work = pool.create((n) => {
+  for (let i = 0; i < n; i++) {
+    // heavy computation...
+    progress.value = i + 1;
+  }
+});
+
+const promise = work(1000);
+
+// Poll progress from main thread
+const interval = setInterval(() => {
+  console.log(`${progress.value} / 1000`);
+}, 100);
+
+await promise;
+clearInterval(interval);
+```
+
+### 10. Worker Health Monitoring
 
 Workers are automatically monitored and restarted on failure:
 
@@ -261,6 +330,14 @@ thread<R>(
 - `timeout?: number` - Timeout in milliseconds
 - `signal?: AbortSignal` - AbortController signal
 - `priority?: Priority` - Job priority (HIGH, NORMAL, LOW)
+
+##### create()
+
+Create a reusable function that executes in a worker thread. Automatically detects `ref()` variables used in the function body.
+
+```typescript
+create<R>(fn: (...args: any[]) => R): (...args: any[]) => Promise<R>
+```
 
 ##### getMetrics()
 
@@ -315,6 +392,28 @@ Get current number of workers in the pool.
 ```typescript
 readonly size: number
 ```
+
+### ref()
+
+Create a shared memory reference accessible from both the main thread and worker threads.
+
+```typescript
+import { ref } from "nodeswarm";
+
+ref<T extends number | string>(initial: T): Ref<T>
+```
+
+**Ref properties:**
+
+- `value: T` - Get or set the shared value (getter/setter backed by `SharedArrayBuffer`)
+- `name: string` - Auto-detected variable name from the call site
+- `buffer: SharedArrayBuffer` - The underlying shared buffer
+
+**Constraints:**
+
+- Supported types: `number` and `string`
+- Strings have a default capacity of 1024 bytes
+- Variable name is auto-detected via stack trace parsing — requires `const/let/var name = ref(...)` syntax
 
 ## Examples
 
@@ -474,10 +573,11 @@ See [SECURITY.md](./SECURITY.md) for comprehensive security guidelines.
 ## Limitations
 
 1. **Serialization**: Only serializable data (primitives, plain objects, arrays)
-2. **Closures**: Functions cannot access outer scope variables
+2. **Closures**: Functions passed to `pool.thread()` cannot access outer scope variables. Use `ref()` with `pool.create()` to share state across threads.
 3. **Imports**: Functions cannot use external modules
 4. **Classes**: Class instances cannot be passed
 5. **CPU-Bound**: Optimized for CPU-intensive tasks, not I/O
+6. **Ref Types**: `ref()` supports `number` and `string` only — objects and arrays are not supported
 
 ## TypeScript Support
 
@@ -489,6 +589,7 @@ import {
   ThreadOptions,
   Priority,
   ThreadPoolMetrics,
+  ref,
 } from "nodeswarm";
 
 const pool = new ThreadPool({ poolSize: 4 });

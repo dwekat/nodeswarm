@@ -141,14 +141,23 @@ export interface Job<R> {
   timeoutId?: NodeJS.Timeout;
   settled?: boolean;
   abortCleanup?: () => void;
+  refs?: RefTransfer[];
 }
 
 /**
  * Represents a message between the main thread and worker threads
  */
+export interface RefTransfer {
+  __ref: true;
+  name: string;
+  buffer: SharedArrayBuffer;
+  type: number;
+}
+
 export interface WorkerMessage {
   fn: string;
   args: any[];
+  refs?: RefTransfer[];
   result?: any;
   error?: {
     message: string;

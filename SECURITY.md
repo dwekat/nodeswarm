@@ -83,6 +83,18 @@ Only disable strict mode if you have a specific need and understand the risks:
 const pool = new ThreadPool({ strictMode: false });
 ```
 
+### Shared Memory (ref)
+
+`ref()` creates values backed by `SharedArrayBuffer`, enabling true shared memory between the main thread and worker threads.
+
+**Security considerations:**
+
+- **Race conditions**: Multiple threads can read and write the same memory concurrently. Number operations use `Float64Array` (not atomic for compound operations like `+=`). String operations use `Atomics` for length tracking but not for content writes. Design accordingly.
+- **Stack trace file reading**: `ref()` reads source files from disk at call time to auto-detect variable names. This is a one-time cost per `ref()` call and only reads files that appear in the call stack. No user input influences which files are read.
+- **Scope injection**: `pool.create()` wraps the user's function in a `new Function()` that injects `ref` variables into scope. This uses the same eval-like mechanism as `pool.thread()` — the same security considerations apply. The injected variables are strictly the `ref` instances registered by the caller.
+
+**Important**: `ref()` does not bypass strict mode validation. Functions passed to `pool.create()` are not currently validated by strict mode — only `pool.thread()` applies strict mode checks. If you rely on strict mode, be aware of this gap.
+
 ## Best Practices
 
 1. **Code Review**: Always review functions passed to `pool.thread()`
@@ -112,6 +124,8 @@ await pool.thread((obj) => obj.value, { value: 42 });
 await pool.thread((fn) => fn(), () => {}); // Will fail
 await pool.thread((map) => map.size, new Map()); // Will fail
 ```
+
+**Exception**: `ref()` values bypass serialization constraints because they use `SharedArrayBuffer` (transferred by reference, not copied). This is by design — the shared buffer is the same memory in both threads.
 
 ## Reporting Security Issues
 
@@ -143,6 +157,7 @@ We will respond within 48 hours and work on a fix as quickly as possible.
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 2.x.x   | :white_check_mark: |
 | 1.x.x   | :white_check_mark: |
 | 0.x.x   | :x:                |
 

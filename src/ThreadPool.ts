@@ -13,7 +13,9 @@ import {
   WorkerMessage,
   ThreadPoolMetrics,
   WorkerState,
+  RefTransfer,
 } from "./types.js";
+import { getRefRegistry } from "./ref.js";
 
 // Re-export WorkerMessage for worker.ts
 export type { WorkerMessage } from "./types.js";
@@ -250,6 +252,48 @@ export class ThreadPool {
   }
 
   /**
+   * Creates a reusable thread function that auto-detects ref() variables
+   * from the function source and wires them into the worker scope.
+   *
+   * @param fn - The function to execute in a worker thread
+   * @returns A function that dispatches to a worker thread when called
+   */
+  create<R>(fn: (...args: any[]) => R): (...args: any[]) => Promise<R> {
+    const fnSource = fn.toString();
+    const registry = getRefRegistry();
+
+    // Scan function source for ref variable names that appear in the registry
+    const refs: RefTransfer[] = [];
+    for (const [name, refInstance] of registry) {
+      // Match `name.value` usage in the function body
+      const pattern = new RegExp(String.raw`\b${name}\.value\b`);
+      if (pattern.test(fnSource)) {
+        refs.push(refInstance.toTransfer());
+      }
+    }
+
+    return (...args: any[]): Promise<R> => {
+      return new Promise((resolve, reject) => {
+        if (this.closing) {
+          return reject(new Error("Cannot accept new jobs while closing"));
+        }
+
+        const job: Job<R> = {
+          fn,
+          args,
+          resolve,
+          reject,
+          priority: Priority.NORMAL,
+          settled: false,
+          refs: refs.length > 0 ? refs : undefined,
+        };
+
+        this.enqueue(job);
+      });
+    };
+  }
+
+  /**
    * Attempt to settle a job. Returns false if already settled.
    * Cleans up timeout and abort listener on settlement.
    */
@@ -333,6 +377,9 @@ export class ThreadPool {
     }
 
     const message: WorkerMessage = { fn: job.fn.toString(), args: job.args };
+    if (job.refs) {
+      message.refs = job.refs;
+    }
     worker.postMessage(message);
 
     // Update worker heartbeat
