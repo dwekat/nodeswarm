@@ -42,7 +42,7 @@
     "build:benchmark": "tsc -p benchmark/tsconfig.json",
     "pretest": "rimraf test_tmp && tsc -p tsconfig.worker.json",
     "posttest": "rimraf test_tmp",
-    "test": "jest",
+    "test": "vitest run",
     "test:compat": "node test/cjs-compat.test.cjs && node test/esm-compat.test.mjs",
     "benchmark": "npm run build && npm run build:benchmark && node benchmark/dist/index.js",
     "benchmark:compare": "npm run build && npm run build:benchmark && node benchmark/dist/compare.js",
@@ -63,29 +63,13 @@
   "license": "MIT",
   "devDependencies": {
     "@changesets/cli": "^2.29.7",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
-    "jest": "^30.2.0",
     "piscina": "^4.7.0",
     "prettier": "^3.6.2",
     "rimraf": "^6.1.2",
     "tinypool": "^1.0.2",
-    "ts-jest": "^29.4.5",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.0",
     "workerpool": "^9.2.1"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "testMatch": [
-      "<rootDir>/test/**/*.test.ts"
-    ],
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx"
-    ],
-    "testTimeout": 30000
   }
 }

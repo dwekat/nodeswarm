@@ -1,20 +1,22 @@
+import { describe, test, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "os";
 import path from "path";
 import { Worker } from "worker_threads";
 
 const actualPathResolve = path.resolve;
 
-jest.mock("path", () => ({
-  ...jest.requireActual("path"),
-  resolve: (...args: any[]) => {
-    // if the last arg is './worker.js', replace the resolved path
-    if (args[args.length - 1] === "./worker.js") {
-      return path.join(__dirname, "../test_tmp/worker.js");
-    }
-    // otherwise, call the original resolve function
-    return actualPathResolve(...args);
-  },
-}));
+vi.mock("path", async () => {
+  const actual = await vi.importActual<typeof import("path")>("path");
+  return {
+    ...actual,
+    resolve: (...args: any[]) => {
+      if (args[args.length - 1] === "./worker.js") {
+        return path.join(__dirname, "../test_tmp/worker.js");
+      }
+      return actualPathResolve(...args);
+    },
+  };
+});
 
 // must be imported after the mock
 import { ThreadPool, Priority } from "../src";
@@ -70,7 +72,7 @@ describe("ThreadPool", () => {
   it("should terminate all workers immediately", async () => {
     const testPool = new ThreadPool();
     const poolSize = testPool.size;
-    const spy = jest.spyOn(Worker.prototype, "terminate");
+    const spy = vi.spyOn(Worker.prototype, "terminate");
     testPool.terminate();
     expect(spy).toHaveBeenCalledTimes(poolSize);
     spy.mockRestore();
@@ -131,7 +133,7 @@ describe("ThreadPool", () => {
     it("should cancel job with AbortSignal", async () => {
       const testPool = new ThreadPool();
       const controller = new AbortController();
-      
+
       const jobPromise = testPool.thread(
         { signal: controller.signal },
         () => {
@@ -161,7 +163,7 @@ describe("ThreadPool", () => {
   describe("Priority queue", () => {
     it("should respect priority levels in queue", async () => {
       const testPool = new ThreadPool({ poolSize: 1 });
-      
+
       // Start a blocking job to fill the worker
       const blocker = testPool.thread(() => {
         const start = Date.now();
@@ -171,7 +173,7 @@ describe("ThreadPool", () => {
 
       // Wait to ensure worker is busy
       await new Promise((resolve) => setTimeout(resolve, 100));
-      
+
       // Queue multiple jobs with different priorities
       const lowJob = testPool.thread({ priority: Priority.LOW }, (x: number) => x, 1);
       const highJob = testPool.thread({ priority: Priority.HIGH }, (x: number) => x, 2);
@@ -179,16 +181,16 @@ describe("ThreadPool", () => {
 
       // Wait for blocker to complete
       await blocker;
-      
+
       // Now check which job completes first - HIGH should complete before others
       const raceResult = await Promise.race([
         highJob.then(() => "HIGH"),
         normalJob.then(() => "NORMAL"),
         lowJob.then(() => "LOW"),
       ]);
-      
+
       expect(raceResult).toBe("HIGH");
-      
+
       // Clean up remaining
       await Promise.all([lowJob, normalJob]);
       await testPool.close();
@@ -199,7 +201,7 @@ describe("ThreadPool", () => {
   describe("Metrics tracking", () => {
     it("should track completed jobs", async () => {
       pool.resetMetrics();
-      
+
       await pool.thread(() => 1);
       await pool.thread(() => 2);
       await pool.thread(() => 3);
@@ -211,7 +213,7 @@ describe("ThreadPool", () => {
 
     it("should track failed jobs", async () => {
       pool.resetMetrics();
-      
+
       try {
         await pool.thread(() => {
           throw new Error("test error");
@@ -224,7 +226,7 @@ describe("ThreadPool", () => {
 
     it("should track execution time", async () => {
       pool.resetMetrics();
-      
+
       await pool.thread(() => {
         const start = Date.now();
         while (Date.now() - start < 100) {}
@@ -238,7 +240,7 @@ describe("ThreadPool", () => {
 
     it("should track queue depth", async () => {
       const pool = new ThreadPool({ poolSize: 1 });
-      
+
       // Start multiple jobs
       const promises = Array(5)
         .fill(0)
@@ -252,7 +254,7 @@ describe("ThreadPool", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const metrics = pool.getMetrics();
       expect(metrics.queueDepth).toBeGreaterThan(0);
-      
+
       await Promise.all(promises);
       await pool.close();
     });
@@ -262,46 +264,46 @@ describe("ThreadPool", () => {
   describe("Strict mode validation", () => {
     it("should block unsafe require() calls", async () => {
       const pool = new ThreadPool({ strictMode: true });
-      
+
       await expect(
         pool.thread(() => {
           require("fs");
         })
       ).rejects.toThrow();
-      
+
       await pool.close();
     });
 
     it("should block unsafe process access", async () => {
       const pool = new ThreadPool({ strictMode: true });
-      
+
       await expect(
         pool.thread(() => {
           return process.env;
         })
       ).rejects.toThrow();
-      
+
       await pool.close();
     });
 
     it("should allow safe functions in strict mode", async () => {
       const pool = new ThreadPool({ strictMode: true });
-      
+
       const result = await pool.thread((x: number) => x * 2, 21);
       expect(result).toBe(42);
-      
+
       await pool.close();
     });
 
     it("should allow all functions when strict mode is off", async () => {
       const pool = new ThreadPool({ strictMode: false });
-      
+
       // This would normally be blocked
       const result = await pool.thread(() => {
         return 42;
       });
       expect(result).toBe(42);
-      
+
       await pool.close();
     });
   });
