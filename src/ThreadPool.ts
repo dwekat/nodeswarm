@@ -164,8 +164,8 @@ export class ThreadPool {
     workerState.worker.terminate();
     this.workerJobMap.delete(workerState.worker);
 
-    // If there was a job, put it back in the queue
-    if (job) {
+    // If there was an unsettled job, put it back in the queue
+    if (job && !job.settled) {
       if (job.timeoutId) {
         clearTimeout(job.timeoutId);
       }
