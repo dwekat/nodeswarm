@@ -78,6 +78,31 @@ describe("ThreadPool", () => {
     spy.mockRestore();
   });
 
+  it("should reject all pending jobs in queue when terminated", async () => {
+    const testPool = new ThreadPool({ poolSize: 1 });
+
+    // Block the single worker so subsequent jobs queue up
+    const blocker = testPool.thread(() => {
+      const start = Date.now();
+      while (Date.now() - start < 500) {}
+      return "done";
+    });
+
+    // These will queue since the worker is busy
+    const job2 = testPool.thread(() => "job2");
+    const job3 = testPool.thread(() => "job3");
+
+    // Terminate immediately — queued jobs should reject
+    testPool.terminate();
+
+    // Queued jobs must reject with "Pool terminated"
+    await expect(job2).rejects.toThrow("Pool terminated");
+    await expect(job3).rejects.toThrow("Pool terminated");
+
+    // Blocker was in-flight on a terminated worker — swallow its rejection
+    await blocker.catch(() => {});
+  });
+
   it("should close all workers gracefully after completing ongoing jobs", async () => {
     const pool = new ThreadPool({ poolSize: 1 }); // One worker for simplicity
     const result = pool.thread(
@@ -453,8 +478,8 @@ describe("ThreadPool", () => {
         }
       );
 
-      // Wait for job to likely complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for job to complete
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Attempt to abort after completion
       controller.abort();

@@ -542,10 +542,17 @@ export class ThreadPool {
     
     this.workers.forEach((ws) => ws.worker.terminate());
     this.workers = [];
+
+    // Reject all in-flight jobs
+    const terminatedError = new Error("Pool terminated");
+    for (const job of this.workerJobMap.values()) {
+      if (this.settleJob(job)) {
+        job.reject(terminatedError);
+      }
+    }
     this.workerJobMap.clear();
 
     // Reject all queued jobs
-    const terminatedError = new Error("Pool terminated");
     while (!this.queue.isEmpty) {
       const job = this.queue.dequeue();
       if (job && this.settleJob(job)) {
