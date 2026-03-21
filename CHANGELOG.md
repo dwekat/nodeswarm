@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0
+
+### Minor Changes
+
+- Add `ref()` shared memory and `pool.create()` reusable thread factory
+  - `ref(value)` creates a `SharedArrayBuffer`-backed reference with `.value` getter/setter, accessible from both main thread and worker threads
+  - `pool.create(fn)` creates reusable thread functions that auto-detect `ref()` variables from function source and wire them into worker scope
+  - Supports `number` and `string` types
+  - Auto-detects variable names from call site via stack trace parsing
+
 ## 2.0.2
 
 ### Patch Changes
