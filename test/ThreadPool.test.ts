@@ -331,6 +331,56 @@ describe("ThreadPool", () => {
         expect(error.name).toBe("TypeError");
       }
     });
+
+    it("should handle malformed worker messages gracefully", async () => {
+      const testPool = new ThreadPool({ poolSize: 1 });
+      const worker = (testPool as any).workers[0].worker;
+
+      const responsePromise = new Promise((resolve, reject) => {
+        const messageHandler = (msg: any) => {
+          worker.off("message", messageHandler);
+          if (msg.error) {
+            reject(msg.error);
+          } else {
+            resolve(msg.result);
+          }
+        };
+        worker.on("message", messageHandler);
+      });
+
+      worker.postMessage({ fn: 123, args: [] });
+
+      await expect(responsePromise).rejects.toMatchObject({
+        message: "Invalid message: fn must be string and args must be array",
+      });
+
+      await testPool.close();
+    });
+
+    it("should handle malformed worker messages with non-array args", async () => {
+      const testPool = new ThreadPool({ poolSize: 1 });
+      const worker = (testPool as any).workers[0].worker;
+
+      const responsePromise = new Promise((resolve, reject) => {
+        const messageHandler = (msg: any) => {
+          worker.off("message", messageHandler);
+          if (msg.error) {
+            reject(msg.error);
+          } else {
+            resolve(msg.result);
+          }
+        };
+        worker.on("message", messageHandler);
+      });
+
+      worker.postMessage({ fn: "() => 42", args: "not an array" });
+
+      await expect(responsePromise).rejects.toMatchObject({
+        message: "Invalid message: fn must be string and args must be array",
+      });
+
+      await testPool.close();
+    });
   });
 
   // New tests for pool configuration
