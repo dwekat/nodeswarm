@@ -1,5 +1,5 @@
 import os from "os";
-import { resolve, dirname } from "path";
+import { resolve } from "path";
 import { fileURLToPath } from "url";
 import { Worker } from "worker_threads";
 import { PriorityQueue } from "./priorityQueue.js";
@@ -249,9 +249,6 @@ export class ThreadPool {
     });
   }
 
-  /**
-   * Cancel a job
-   */
   /**
    * Attempt to settle a job. Returns false if already settled.
    * Cleans up timeout and abort listener on settlement.
