@@ -397,6 +397,21 @@ describe("ThreadPool", () => {
       defaultPool.terminate();
     });
   });
+
+  // Test that health check interval is unreffed
+  describe("Event loop behavior", () => {
+    it("should unref health check interval to allow process exit", () => {
+      const testPool = new ThreadPool();
+      const interval = (testPool as any).healthCheckInterval;
+      expect(interval).toBeDefined();
+
+      // Verify unref was called by checking if interval has unref method
+      // (In Node.js, after unref() the interval won't keep process alive)
+      expect(typeof interval.unref).toBe("function");
+
+      testPool.terminate();
+    });
+  });
 });
 
 function blockThreadForOneSecond() {

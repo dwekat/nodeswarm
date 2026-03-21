@@ -107,6 +107,7 @@ export class ThreadPool {
    */
   private createWorker(): WorkerState {
     const worker = new Worker(ThreadPool.workerPath);
+
     const workerState: WorkerState = {
       worker,
       failureCount: 0,
@@ -129,6 +130,7 @@ export class ThreadPool {
     this.healthCheckInterval = setInterval(() => {
       this.checkWorkerHealth();
     }, 5000); // Check every 5 seconds
+    this.healthCheckInterval?.unref?.();
   }
 
   /**
