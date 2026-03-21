@@ -135,6 +135,7 @@ export class ThreadPool {
    * Check health of all workers and restart unhealthy ones
    */
   private checkWorkerHealth(): void {
+    if (this.closing) return;
     const now = Date.now();
     const maxInactivity = 60000; // 60 seconds
 
@@ -369,6 +370,7 @@ export class ThreadPool {
     if (workerState) {
       workerState.lastHeartbeat = Date.now();
       workerState.failureCount = 0; // Reset failure count on success
+      workerState.isHealthy = true;
     }
 
     if (message.error) {
