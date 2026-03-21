@@ -412,6 +412,68 @@ describe("ThreadPool", () => {
       testPool.terminate();
     });
   });
+
+  // Test double-settlement prevention
+  describe("Double-settlement prevention", () => {
+    it("should prevent double-settlement when job completes and cancelJob is called", async () => {
+      const testPool = new ThreadPool({ poolSize: 1 });
+      const controller = new AbortController();
+
+      const jobPromise = testPool.thread(
+        { signal: controller.signal },
+        () => {
+          return 42;
+        }
+      );
+
+      // Wait for job to likely complete
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Attempt to abort after completion
+      controller.abort();
+
+      // Should resolve with result, not reject with AbortError
+      const result = await jobPromise;
+      expect(result).toBe(42);
+
+      await testPool.close();
+    });
+
+    it("should prevent double-settlement when timeout fires after job completes", async () => {
+      const testPool = new ThreadPool({ poolSize: 1 });
+
+      const result = await testPool.thread(
+        { timeout: 1000 },
+        () => {
+          return 42;
+        }
+      );
+
+      expect(result).toBe(42);
+
+      await testPool.close();
+    });
+
+    it("should prevent double-settlement when worker sends message after timeout", async () => {
+      const testPool = new ThreadPool({ poolSize: 1 });
+
+      await expect(
+        testPool.thread(
+          { timeout: 50 },
+          () => {
+            const start = Date.now();
+            while (Date.now() - start < 200) {}
+            return 42;
+          }
+        )
+      ).rejects.toThrow("TimeoutError");
+
+      // Wait for worker to potentially send response
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      await testPool.close();
+    }, 10000);
+  });
 });
 
 function blockThreadForOneSecond() {

@@ -139,6 +139,7 @@ export interface Job<R> {
   signal?: AbortSignal;
   startTime?: number;
   timeoutId?: NodeJS.Timeout;
+  settled?: boolean;
 }
 
 /**

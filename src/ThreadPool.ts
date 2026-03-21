@@ -232,6 +232,7 @@ export class ThreadPool {
         priority: options.priority ?? Priority.NORMAL,
         timeout: options.timeout,
         signal: options.signal,
+        settled: false,
       };
 
       // Handle AbortSignal
@@ -252,6 +253,10 @@ export class ThreadPool {
    * Cancel a job
    */
   private cancelJob(job: Job<any>): void {
+    // Prevent double settlement
+    if (job.settled) return;
+    job.settled = true;
+
     if (job.timeoutId) {
       clearTimeout(job.timeoutId);
     }
@@ -338,6 +343,10 @@ export class ThreadPool {
    * Handle job timeout
    */
   private handleJobTimeout(worker: Worker, job: Job<any>): void {
+    // Prevent double settlement
+    if (job.settled) return;
+    job.settled = true;
+
     this.workerJobMap.delete(worker);
     job.reject(new Error("TimeoutError: Job execution exceeded timeout"));
     this.metrics.recordJobFailure();
@@ -358,6 +367,34 @@ export class ThreadPool {
   private onMessage(worker: Worker, message: WorkerMessage): void {
     const job = this.workerJobMap.get(worker);
     if (!job) return;
+
+    // Prevent double settlement
+    if (job.settled) {
+      // Job already settled, clean up and continue
+      this.workerJobMap.delete(worker);
+
+      // Update worker heartbeat
+      const workerState = this.workers.find((ws) => ws.worker === worker);
+      if (workerState) {
+        workerState.lastHeartbeat = Date.now();
+        workerState.isHealthy = true;
+      }
+
+      // Check if closing
+      if (
+        this.closing &&
+        this.queue.isEmpty &&
+        this.workerJobMap.size === 0
+      ) {
+        this.closeResolvers.forEach((resolve) => resolve());
+        this.closeResolvers = [];
+      }
+
+      // Process next job
+      this.processNextJob();
+      return;
+    }
+    job.settled = true;
 
     // Clear timeout if set
     if (job.timeoutId) {
@@ -435,6 +472,13 @@ export class ThreadPool {
 
     const job = this.workerJobMap.get(worker);
     if (job) {
+      // Prevent double settlement
+      if (job.settled) {
+        this.workerJobMap.delete(worker);
+        return;
+      }
+      job.settled = true;
+
       if (job.timeoutId) {
         clearTimeout(job.timeoutId);
       }
