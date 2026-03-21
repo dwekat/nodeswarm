@@ -3,7 +3,7 @@ const {
   fibonacci,
   countPrimes,
   mixedWorkload,
-} = require("../workloads");
+} = require("../dist/workloads");
 
 workerpool.worker({
   fibonacci,

@@ -26,8 +26,18 @@ export function isPrime(num: number): boolean {
 
 /**
  * Count primes up to n (CPU-intensive)
+ * isPrime is inlined because worker threads serialize only this function
  */
 export function countPrimes(n: number): number {
+  function isPrime(num: number): boolean {
+    if (num <= 1) return false;
+    if (num <= 3) return true;
+    if (num % 2 === 0 || num % 3 === 0) return false;
+    for (let i = 5; i * i <= num; i += 6) {
+      if (num % i === 0 || num % (i + 2) === 0) return false;
+    }
+    return true;
+  }
   let count = 0;
   for (let i = 2; i <= n; i++) {
     if (isPrime(i)) count++;
@@ -127,13 +137,54 @@ export function heavySort(size: number): number[] {
 
 /**
  * Mixed workload
+ * All helpers inlined because worker threads serialize only this function
  */
 export function mixedWorkload(): any {
-  const fib = fibonacci(30);
-  const primes = countPrimes(1000);
-  const hash = computeHash("benchmark", 100);
-  const sorted = heavySort(1000);
-  
+  function _fibonacci(n: number): number {
+    if (n < 2) return n;
+    return _fibonacci(n - 1) + _fibonacci(n - 2);
+  }
+  function _isPrime(num: number): boolean {
+    if (num <= 1) return false;
+    if (num <= 3) return true;
+    if (num % 2 === 0 || num % 3 === 0) return false;
+    for (let i = 5; i * i <= num; i += 6) {
+      if (num % i === 0 || num % (i + 2) === 0) return false;
+    }
+    return true;
+  }
+  function _countPrimes(n: number): number {
+    let count = 0;
+    for (let i = 2; i <= n; i++) {
+      if (_isPrime(i)) count++;
+    }
+    return count;
+  }
+  function _computeHash(input: string, iterations: number): string {
+    let hash = input;
+    for (let i = 0; i < iterations; i++) {
+      let newHash = "";
+      for (let j = 0; j < hash.length; j++) {
+        newHash += String.fromCharCode(hash.charCodeAt(j) ^ (i % 256));
+      }
+      hash = newHash;
+    }
+    return hash;
+  }
+  function _heavySort(size: number): number[] {
+    const arr = Array(size).fill(0).map(() => Math.random());
+    for (let i = 0; i < 10; i++) {
+      arr.sort((a, b) => b - a);
+      arr.sort((a, b) => a - b);
+    }
+    return arr;
+  }
+
+  const fib = _fibonacci(30);
+  const primes = _countPrimes(1000);
+  const hash = _computeHash("benchmark", 100);
+  const sorted = _heavySort(1000);
+
   return { fib, primes, hash: hash.length, sorted: sorted.length };
 }
 

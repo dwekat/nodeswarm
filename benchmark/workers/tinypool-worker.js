@@ -2,7 +2,7 @@ const {
   fibonacci,
   countPrimes,
   mixedWorkload,
-} = require("../workloads");
+} = require("../dist/workloads");
 
 module.exports = async ({ type, args }) => {
   switch (type) {

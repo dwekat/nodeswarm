@@ -1,4 +1,4 @@
-import { ThreadPool } from "../src";
+const { ThreadPool } = require("../../dist/cjs");
 import {
   fibonacci,
   countPrimes,

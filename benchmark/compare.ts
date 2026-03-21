@@ -1,4 +1,4 @@
-import { ThreadPool } from "../src";
+const { ThreadPool } = require("../../dist/cjs");
 import { fibonacci, countPrimes, mixedWorkload } from "./workloads";
 import os from "os";
 
@@ -61,7 +61,7 @@ async function benchmarkNodeSwarm(): Promise<ComparisonResult> {
 async function benchmarkPiscina(): Promise<ComparisonResult> {
   let Piscina: any;
   try {
-    Piscina = require("piscina").default;
+    Piscina = require("piscina");
   } catch {
     return {
       library: "Piscina",
@@ -73,7 +73,7 @@ async function benchmarkPiscina(): Promise<ComparisonResult> {
   }
 
   const pool = new Piscina({
-    filename: require.resolve("./workers/piscina-worker.js"),
+    filename: require.resolve("../workers/piscina-worker.js"),
   });
   const concurrentTasks = os.cpus().length;
 
@@ -130,7 +130,7 @@ async function benchmarkWorkerpool(): Promise<ComparisonResult> {
   }
 
   const pool = workerpool.pool(
-    require.resolve("./workers/workerpool-worker.js")
+    require.resolve("../workers/workerpool-worker.js")
   );
   const concurrentTasks = os.cpus().length;
 
@@ -187,7 +187,7 @@ async function benchmarkTinypool(): Promise<ComparisonResult> {
   }
 
   const pool = new Tinypool({
-    filename: require.resolve("./workers/tinypool-worker.js"),
+    filename: require.resolve("../workers/tinypool-worker.js"),
   });
   const concurrentTasks = os.cpus().length;
 
