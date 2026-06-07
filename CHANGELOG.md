@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.1
+
+### Patch Changes
+
+- Maintenance release: bump dependencies (workerpool, vitest, @types/node,
+  prettier, @changesets/cli) and add a tag-triggered GitHub Actions workflow
+  that publishes to npm with provenance.
+
 ## 2.1.0
 
 ### Minor Changes
