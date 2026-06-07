@@ -48,7 +48,7 @@
     "benchmark:compare": "npm run build && npm run build:benchmark && node benchmark/dist/compare.js",
     "prepublishOnly": "npm run build",
     "changeset": "changeset",
-    "version": "changeset version",
+    "version": "changeset version && npm install --package-lock-only",
     "release": "changeset publish"
   },
   "keywords": [
