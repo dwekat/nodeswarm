@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.3
+
+### Patch Changes
+
+- Update development toolchain dependencies (@types/node, piscina, tinypool and friends). No runtime dependency or public API change.
+
 ## 2.1.2
 
 ### Patch Changes
