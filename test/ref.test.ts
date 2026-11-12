@@ -296,7 +296,7 @@ describe("pool.create concurrent execution", () => {
     });
 
     // Fire 20 concurrent increments
-    await Promise.all(new Array(20).fill(0).map(() => increment()));
+    await Promise.all(Array.from({ length: 20 }, () => increment()));
 
     // Due to race conditions on non-atomic +=, the value may be <= 20
     // The important thing: no crashes, no hangs, all promises resolve
@@ -312,8 +312,8 @@ describe("pool.create concurrent execution", () => {
     const incB = pool.create(() => { b.value += 1; });
 
     await Promise.all([
-      ...new Array(5).fill(0).map(() => incA()),
-      ...new Array(5).fill(0).map(() => incB()),
+      ...Array.from({ length: 5 }, () => incA()),
+      ...Array.from({ length: 5 }, () => incB()),
     ]);
 
     // Both should have been incremented (exact value depends on scheduling)

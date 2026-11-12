@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.5
+
+### Patch Changes
+
+- Update maintenance dependencies and migrate npm publishing to trusted publishing.
+
 ## 2.1.3
 
 ### Patch Changes

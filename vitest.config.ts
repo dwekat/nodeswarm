@@ -1,8 +1,6 @@
-import { defineConfig } from "vitest/config";
-
-export default defineConfig({
+module.exports = {
   test: {
     testTimeout: 30000,
     include: ["test/**/*.test.ts"],
   },
-});
+};

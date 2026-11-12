@@ -48,7 +48,7 @@ describe("ThreadPool", () => {
     const start = Date.now();
     const promises = Array(arrayLen)
       .fill(0)
-      .map((_, i) => pool.thread(blockThreadForOneSecond));
+      .map(() => pool.thread(blockThreadForOneSecond));
     await Promise.all(promises);
     const duration = Date.now() - start;
     expect(duration).toBeLessThan(8000); // 8x threshold for slow CI environments
@@ -531,8 +531,4 @@ describe("ThreadPool", () => {
 function blockThreadForOneSecond() {
   const startTime = Date.now();
   while (Date.now() - startTime < 1000) {}
-}
-
-function fib(n: number): number {
-  return n <= 1 ? n : fib(n - 1) + fib(n - 2);
 }
